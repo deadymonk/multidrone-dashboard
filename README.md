@@ -1,10 +1,10 @@
 # Multi-Vehicle Status Dashboard — Mission Planner Plugin
 
-A CCTV-style grid dashboard that monitors all connected drones simultaneously with real-time telemetry and arm/disarm controls.
+A  grid dashboard that monitors all connected drones simultaneously with real-time telemetry and arm/disarm controls.
 
 ## Features
 
-- **CCTV Grid Layout** — Each drone gets a square panel with live telemetry
+- **Grid Layout** — Each drone gets a square panel with live telemetry
 - **Artificial Horizon** — Visual roll/pitch indicator per drone
 - **Telemetry Display** — Roll, Yaw, Altitude, Speed, GPS, HDOP, Battery, Mode
 - **Click-to-Control** — Click any drone panel to arm/disarm that specific vehicle
