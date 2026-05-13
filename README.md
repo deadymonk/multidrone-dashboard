@@ -12,18 +12,42 @@ A CCTV-style grid dashboard that monitors all connected drones simultaneously wi
 - **Auto-open** — Dashboard launches automatically when Mission Planner starts
 - **5Hz Updates** — Smooth, real-time data refresh
 
-## Installation
+## Manual Installation Guide
 
-1. Copy `MultiVehicleDashPlugin.cs` to your Mission Planner plugins folder:
-   ```
-   C:\Program Files (x86)\Mission Planner\plugins\
-   ```
+Mission Planner supports C# scripts dynamically compiled at runtime via its plugin system. You do **not** need Visual Studio or any separate compiler to install this plugin. 
 
-2. Restart Mission Planner — the plugin compiles automatically at startup.
+Please follow these instructions carefully to implement the plugin into your Mission Planner installation.
 
-3. The dashboard opens automatically. You can also access it by right-clicking the Flight Data map → **"Multi-Vehicle Dash"**.
+### Step 1: Locate your Mission Planner Plugins Folder
+By default, Mission Planner is installed in `C:\Program Files (x86)\Mission Planner\`. 
+Inside this directory, there is a folder named `plugins`. 
 
-## Safety
+The full path should be:
+`C:\Program Files (x86)\Mission Planner\plugins\`
+
+*Note: If you installed Mission Planner in a custom directory or are using a portable version, navigate to that specific directory and find the `plugins` folder.*
+
+### Step 2: Download the Plugin File
+Download the `MultiVehicleDashPlugin.cs` file from this repository.
+
+### Step 3: Copy the Plugin
+Move or copy the downloaded `MultiVehicleDashPlugin.cs` file directly into the `plugins` folder you located in Step 1.
+
+You will likely need **Administrator Privileges** to copy a file into the `Program Files (x86)` directory. If Windows prompts you for permission, click **Continue**.
+
+### Step 4: Restart Mission Planner
+If Mission Planner is currently open, completely close the application. 
+Launch Mission Planner again.
+
+During the startup sequence, Mission Planner's internal compiler (Roslyn) will automatically detect the new `.cs` file in the plugins folder and compile it in the background.
+
+### Step 5: Access the Dashboard
+Once Mission Planner has fully loaded:
+1. Connect your vehicles (or SITL instances) as usual.
+2. The Multi-Vehicle Grid Dashboard should open **automatically** in a separate window.
+3. If you accidentally close it, you can reopen it manually: Right-click anywhere on the map in the **Flight Data** screen, and click **"Multi-Vehicle Dash"** from the context menu.
+
+## Safety Mechanisms
 
 | Action | Safety Mechanism |
 |--------|-----------------|
@@ -34,5 +58,5 @@ A CCTV-style grid dashboard that monitors all connected drones simultaneously wi
 
 ## Requirements
 
-- Mission Planner (installed at `C:\Program Files (x86)\Mission Planner\`)
-- .NET Framework 4.6.2+
+- Mission Planner
+- .NET Framework 4.6.2+ (already required by modern Mission Planner versions)
