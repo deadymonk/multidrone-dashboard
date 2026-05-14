@@ -27,7 +27,7 @@ namespace MultiVehicleDash
             return true;
         }
 
-                public override bool Loaded()
+        public override bool Loaded()
         {
             var menuItem = new ToolStripMenuItem("Multi-Vehicle Dash");
             menuItem.Click += (s, e) => ShowDashboard();
@@ -76,10 +76,15 @@ namespace MultiVehicleDash
                 {
                     try
                     {
-                        if (port == null) { portIdx++; continue; }
+                        if (port == null || port.MAVlist == null) { portIdx++; continue; }
 
                         string portName = "N/A";
-                        try { portName = port.BaseStream?.PortName ?? "N/A"; } catch { }
+                        try { 
+                            portName = port.BaseStream?.PortName ?? "N/A"; 
+                            if (portName.Contains("UdpSerial")) portName = "UDP";
+                            else if (portName.Contains("TcpSerial")) portName = "TCP";
+                        } catch { }
+
 
                         foreach (var mav in port.MAVlist)
                         {
@@ -123,7 +128,7 @@ namespace MultiVehicleDash
                                     d.Groundspeed = cs.groundspeed;
                                     d.BatteryVoltage = cs.battery_voltage;
                                     d.SatCount = cs.satcount;
-                                    d.Mode = cs.mode ?? "UNKNOWN";
+                                    d.Mode = cs.mode != null ? cs.mode : "UNKNOWN";
                                     d.Armed = cs.armed;
                                     d.ComPort = port;
                                     d.IsConnected = true;
@@ -231,7 +236,7 @@ namespace MultiVehicleDash
             _globalArmBtn = CreateStyledButton("⚡ GLOBAL ARM ALL", RED, Color.FromArgb(60, 20, 20)); _globalArmBtn.Location = new Point(350, 10); _globalArmBtn.Click += GlobalArm_Click;
             _globalDisarmBtn = CreateStyledButton("■ GLOBAL DISARM ALL", GREEN, Color.FromArgb(20, 60, 20)); _globalDisarmBtn.Location = new Point(560, 10); _globalDisarmBtn.Click += GlobalDisarm_Click;
             var refreshBtn = CreateStyledButton("↻ REFRESH", ACCENT_CYAN, Color.FromArgb(15, 30, 50)); refreshBtn.Size = new Size(120, 38); refreshBtn.Location = new Point(770, 10);
-            refreshBtn.Click += (s, ev) => { _onRefresh?.Invoke(); _statusLabel.Text = "↻ MAPPING RESET..."; _statusLabel.ForeColor = AMBER; };
+            refreshBtn.Click += (s, ev) => { if (_onRefresh != null) _onRefresh(); _statusLabel.Text = "↻ MAPPING RESET..."; _statusLabel.ForeColor = AMBER; };
             bottomPanel.Controls.AddRange(new Control[] { _statusLabel, _globalArmBtn, _globalDisarmBtn, refreshBtn });
 
             _gridPanel = new TableLayoutPanel { Dock = DockStyle.Fill, BackColor = BG_DARK, Padding = new Padding(10) };
@@ -269,7 +274,23 @@ namespace MultiVehicleDash
             _armClickCount = 0;
             if (MessageBox.Show("⚠ WARNING: This will ARM ALL connected vehicles!\n\nAre you absolutely sure?", "CONFIRM GLOBAL ARM", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
-                Parallel.ForEach(MainV2.Comports, mav => { try { mav.doARM(true); } catch { } });
+                foreach (var p in _panels)
+                {
+                    if (p != null && p.Data != null && p.Data.ComPort != null && p.Data.IsConnected)
+                    {
+                        try 
+                        { 
+                            var oldSys = p.Data.ComPort.sysidcurrent;
+                            var oldComp = p.Data.ComPort.compidcurrent;
+                            p.Data.ComPort.sysidcurrent = p.Data.SysId;
+                            p.Data.ComPort.compidcurrent = p.Data.CompId;
+                            p.Data.ComPort.doARM(true); 
+                            p.Data.ComPort.sysidcurrent = oldSys;
+                            p.Data.ComPort.compidcurrent = oldComp;
+                        } 
+                        catch { }
+                    }
+                }
                 _statusLabel.Text = "✓ ARM command sent to all vehicles"; _statusLabel.ForeColor = GREEN;
             }
         }
@@ -278,14 +299,32 @@ namespace MultiVehicleDash
         {
             if (MessageBox.Show("Disarm ALL connected vehicles?", "CONFIRM GLOBAL DISARM", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
-                Parallel.ForEach(MainV2.Comports, mav => { try { mav.doARM(false); } catch { } });
+                foreach (var p in _panels)
+                {
+                    if (p != null && p.Data != null && p.Data.ComPort != null && p.Data.IsConnected)
+                    {
+                        try 
+                        { 
+                            var oldSys = p.Data.ComPort.sysidcurrent;
+                            var oldComp = p.Data.ComPort.compidcurrent;
+                            p.Data.ComPort.sysidcurrent = p.Data.SysId;
+                            p.Data.ComPort.compidcurrent = p.Data.CompId;
+                            p.Data.ComPort.doARM(false); 
+                            p.Data.ComPort.sysidcurrent = oldSys;
+                            p.Data.ComPort.compidcurrent = oldComp;
+                        } 
+                        catch { }
+                    }
+                }
                 _statusLabel.Text = "✓ DISARM command sent to all vehicles"; _statusLabel.ForeColor = GREEN;
             }
         }
 
         public void UpdateVehicles(VehicleData[] vehicles)
         {
-            int connectedCount = vehicles.Count(v => v != null && v.IsConnected);
+            int connectedCount = 0;
+            foreach (var v in vehicles) if (v != null && v.IsConnected) connectedCount++;
+
             if (!_statusLabel.Text.Contains("REFRESH") && !_statusLabel.Text.Contains("ARM"))
             {
                 _statusLabel.Text = string.Format("{0} VEHICLE{1} CONNECTED", connectedCount, connectedCount != 1 ? "S" : "");
@@ -301,6 +340,8 @@ namespace MultiVehicleDash
     public class DronePanel : UserControl
     {
         private VehicleData _data;
+        public VehicleData Data { get { return _data; } }
+
         private int _droneNumber;
         private ArtificialHorizon _horizon;
         private Button _armToggleBtn, _rtlBtn, _loiterBtn, _landBtn;
@@ -382,14 +423,34 @@ namespace MultiVehicleDash
             
             if (MessageBox.Show(string.Format("Are you sure you want to {0} DRONE {1:D2}?", action, _droneNumber), string.Format("Confirm {0}", action), MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
-                try { _data.ComPort.doARM(!isArmed); } catch { }
+                try 
+                { 
+                    var oldSys = _data.ComPort.sysidcurrent;
+                    var oldComp = _data.ComPort.compidcurrent;
+                    _data.ComPort.sysidcurrent = _data.SysId;
+                    _data.ComPort.compidcurrent = _data.CompId;
+                    _data.ComPort.doARM(!isArmed); 
+                    _data.ComPort.sysidcurrent = oldSys;
+                    _data.ComPort.compidcurrent = oldComp;
+                } 
+                catch { }
             }
         }
 
         private void SetMode(string mode)
         {
             if (_data == null || !_data.IsConnected) return;
-            try { _data.ComPort.setMode(mode); } catch { }
+            try 
+            { 
+                var oldSys = _data.ComPort.sysidcurrent;
+                var oldComp = _data.ComPort.compidcurrent;
+                _data.ComPort.sysidcurrent = _data.SysId;
+                _data.ComPort.compidcurrent = _data.CompId;
+                _data.ComPort.setMode(mode); 
+                _data.ComPort.sysidcurrent = oldSys;
+                _data.ComPort.compidcurrent = oldComp;
+            } 
+            catch { }
         }
 
         public void UpdateData(VehicleData data)
@@ -439,7 +500,11 @@ namespace MultiVehicleDash
 
             var smallFont = new Font("Consolas", 8f);
             var ledColor = conn ? GREEN : RED;
-            string portText = conn ? (_data.PortName + " | SYS:" + _data.SysId) : "DISCONNECTED";
+            
+            // UI FIX: Truncate port name if it's too long for the header
+            string pName = conn ? _data.PortName : "DISCONNECTED";
+            if (pName.Length > 15) pName = pName.Substring(0, 12) + "...";
+            string portText = conn ? (pName + " | SYS:" + _data.SysId) : "DISCONNECTED";
             
             var sz = g.MeasureString(portText, smallFont);
             using (var b = new SolidBrush(ledColor))
@@ -514,10 +579,4 @@ namespace MultiVehicleDash
             }
         }
     }
-
-
-
-
-
-
 }
