@@ -35,8 +35,11 @@ If you want to modify the dashboard UI, add features, or compile the source code
    ```bash
    dotnet build MultiVehicleDashPlugin.csproj -c Release
    ```
-5. **Deploy**:
-   The newly compiled file will be located at `bin\Release\net48\MultiVehicleDashPlugin.dll`. Copy this new `.dll` into Mission Planner's `plugins` folder and restart Mission Planner.
+5. **Locate the Compiled `.dll`**:
+   After a successful build, the C# compiler places the output file inside the `bin` directory of your project folder. Specifically, you will find it here:
+   `bin\Release\net48\MultiVehicleDashPlugin.dll`
+6. **Deploy**:
+   Manually copy the `MultiVehicleDashPlugin.dll` file from that `bin\Release\net48\` folder, paste it into your `C:\Program Files (x86)\Mission Planner\plugins\` folder, and restart Mission Planner.
 
 ---
 **Enjoy simplified multi-drone orchestration!**
