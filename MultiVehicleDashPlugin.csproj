@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Library</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="**/*.cs" />
+    <Compile Include="MultiVehicleDashPlugin.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="MissionPlanner">
+      <HintPath>C:\Program Files (x86)\Mission Planner\MissionPlanner.exe</HintPath>
+    </Reference>
+    <Reference Include="MissionPlanner.Controls">
+      <HintPath>C:\Program Files (x86)\Mission Planner\MissionPlanner.Controls.dll</HintPath>
+    </Reference>
+    <Reference Include="MissionPlanner.Utilities">
+      <HintPath>C:\Program Files (x86)\Mission Planner\MissionPlanner.Utilities.dll</HintPath>
+    </Reference>
+    <Reference Include="MissionPlanner.Comms">
+      <HintPath>C:\Program Files (x86)\Mission Planner\MissionPlanner.Comms.dll</HintPath>
+    </Reference>
+    <Reference Include="MAVLink">
+      <HintPath>C:\Program Files (x86)\Mission Planner\MAVLink.dll</HintPath>
+    </Reference>
+    <Reference Include="Interfaces">
+      <HintPath>C:\Program Files (x86)\Mission Planner\Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Data" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="MissionPlanner.ArduPilot">
+      <HintPath>C:\Program Files (x86)\Mission Planner\MissionPlanner.ArduPilot.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

@@ -76,15 +76,11 @@ namespace MultiVehicleDash
                 {
                     try
                     {
-                        if (port == null || port.MAVlist == null) { portIdx++; continue; }
+                        if (port == null || port.BaseStream == null || !port.BaseStream.IsOpen || port.MAVlist == null) { portIdx++; continue; }
 
                         string portName = "N/A";
-                        try { 
-                            portName = port.BaseStream?.PortName ?? "N/A"; 
-                            if (portName.Contains("UdpSerial")) portName = "UDP";
-                            else if (portName.Contains("TcpSerial")) portName = "TCP";
-                        } catch { }
-
+                        // Fix implemented here: Grabbing the actual PortName instead of calling ToString() on the stream
+                        try { portName = port.BaseStream?.PortName ?? "N/A"; } catch { }
 
                         foreach (var mav in port.MAVlist)
                         {
@@ -128,10 +124,13 @@ namespace MultiVehicleDash
                                     d.Groundspeed = cs.groundspeed;
                                     d.BatteryVoltage = cs.battery_voltage;
                                     d.SatCount = cs.satcount;
-                                    d.Mode = cs.mode != null ? cs.mode : "UNKNOWN";
+                                    
+                                    // Fix implemented here: cleaner null coalescing fallback
+                                    d.Mode = cs.mode ?? "UNKNOWN"; 
+                                    
                                     d.Armed = cs.armed;
                                     d.ComPort = port;
-                                    d.IsConnected = true;
+                                    d.IsConnected = cs.connected;
                                 }
                             }
                             catch { }
@@ -144,7 +143,7 @@ namespace MultiVehicleDash
                 if (_dashForm != null && !_dashForm.IsDisposed)
                 {
                     VehicleData[] copy = new VehicleData[10];
-                    for(int i=0; i<10; i++)
+                    for(int i = 0; i < 10; i++)
                     {
                         if (_currentData[i] != null)
                             copy[i] = _currentData[i].Clone();
@@ -196,7 +195,7 @@ namespace MultiVehicleDash
         private Label _titleLabel, _statusLabel, _timeLabel;
         private Button _globalArmBtn, _globalDisarmBtn;
         private DronePanel[] _panels = new DronePanel[10];
-        private Timer _clockTimer;
+        private System.Windows.Forms.Timer _clockTimer;
         private int _armClickCount = 0;
         private DateTime _lastArmClick = DateTime.MinValue;
         private Action _onRefresh;
@@ -255,7 +254,7 @@ namespace MultiVehicleDash
             Controls.Add(bottomPanel);
             Controls.Add(titlePanel);
 
-            _clockTimer = new Timer { Interval = 1000 };
+            _clockTimer = new System.Windows.Forms.Timer { Interval = 1000 };
             _clockTimer.Tick += (s, e) => _timeLabel.Text = DateTime.Now.ToString("HH:mm:ss");
             _clockTimer.Start();
         }
@@ -500,11 +499,7 @@ namespace MultiVehicleDash
 
             var smallFont = new Font("Consolas", 8f);
             var ledColor = conn ? GREEN : RED;
-            
-            // UI FIX: Truncate port name if it's too long for the header
-            string pName = conn ? _data.PortName : "DISCONNECTED";
-            if (pName.Length > 15) pName = pName.Substring(0, 12) + "...";
-            string portText = conn ? (pName + " | SYS:" + _data.SysId) : "DISCONNECTED";
+            string portText = conn ? (_data.PortName + " | SYS:" + _data.SysId) : "DISCONNECTED";
             
             var sz = g.MeasureString(portText, smallFont);
             using (var b = new SolidBrush(ledColor))
